@@ -1,0 +1,27 @@
+{
+  // Set all default values to null or 0
+  // Directly scraped values
+  "post_id": "nan", // Scraped from post URLs
+  "subreddit": "nan",
+  "title": "nan",
+  "body": "nan",
+  "author": "nan", // For tracking power users/bots
+  "created_utc": -1, // Post creation time, in UTC format (int)
+  "upvotes": 0, // Gross upvotes, excluding downvotes
+  "score": 0, // Net upvotes
+  "num_comments": 0,
+  "flair": [], // Post flairs (e.g., "DD", "Meme", "News")
+  "comments": [ // Optional: Top-level comments for deeper analysis
+    {
+      "comment_id": "nan",
+      "body": "nan",
+      "author": "nan",
+      "score": 0,
+      "created_utc": -1,
+    }
+  ],
+  
+  // Extracted values
+  "upvote_ratio": 0.0, // Ratio of upvotes to total votes (0.0–1.0)
+  "tickers": [], // Extracted stock tickers (can be directly assigned for subreddits specific to a certain coin)
+}
