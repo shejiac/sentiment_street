@@ -1,0 +1,14 @@
+# This file includes all the libraries that will be installed to run the project
+
+# Jupyter Notebook
+ipykernel
+
+# Web scraping
+praw
+
+# General DS libs
+numpy
+pandas
+seaborn
+matplotlib
+scikit-learn
