@@ -8,15 +8,15 @@ import datetime
 # ==========================
 SUBREDDIT_NAME = "Bitcoin"
 LIMIT = 50
-OUTPUT_FILE = "raw_reddit_data.csv"
+OUTPUT_FILE = "data/raw_reddit_data.csv"
 
 # ==========================
 # Reddit API Setup (Public Read-Only Mode)
 # ==========================
 reddit = praw.Reddit(
-    client_id="d7eIg8y_GeEZjLV8SVObFQ",      
-    client_secret="",                
-    user_agent="sentiment_scraper/0.1 by u/AssumptionThick327"
+    client_id="d7eIg8y_GeEZjLV8SVObFQ",
+    client_secret="",
+    user_agent="sentiment_scraper/0.1 by u/AssumptionThick327",
 )
 
 # ==========================
@@ -32,22 +32,24 @@ for post in subreddit.hot(limit=LIMIT):
         comments = [c.body for c in post.comments.list()[:20]]
 
         post_data = {
-            "id": post.id,  # Unique Reddit post ID 
+            "id": post.id,  # Unique Reddit post ID
             "title": post.title,  # Title of the Reddit post
             "selftext": post.selftext,  # Body text of the post (only for text/self posts)
-            "comments": " || ".join(comments),  # Top 20 comment bodies, joined into one string
+            "comments": " || ".join(
+                comments
+            ),  # Top 20 comment bodies, joined into one string
             "score": post.score,  # Net upvotes (upvotes - downvotes)
             "created_utc": post.created_utc,  # Post creation timestamp in UTC (Unix time)
             "url": post.url,  # Full URL to the Reddit post or external content
             "num_comments": post.num_comments,  # Total number of comments on the post
             "flair": post.link_flair_text,  # Flair label attached to the post (e.g., "Discussion")
-            "is_self": post.is_self  # True if the post is a text post, False if it's a link/media
+            "is_self": post.is_self,  # True if the post is a text post, False if it's a link/media
         }
 
         posts.append(post_data)
         print(f"Collected post: {post.id} — {post.title[:60]}...")
 
-        time.sleep(1)  
+        time.sleep(1)
 
     except Exception as e:
         print(f"Skipped post {post.id if 'post' in locals() else '[unknown]'}: {e}")
@@ -55,7 +57,7 @@ for post in subreddit.hot(limit=LIMIT):
 # ==========================
 # Save to CSV
 # ==========================
-with open(OUTPUT_FILE, "w", newline='', encoding="utf-8") as f:
+with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(f, fieldnames=posts[0].keys())
     writer.writeheader()
     writer.writerows(posts)
