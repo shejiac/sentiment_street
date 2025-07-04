@@ -12,3 +12,6 @@ pandas
 seaborn
 matplotlib
 scikit-learn
+
+# Sentiment analysis
+vaderSentiment
