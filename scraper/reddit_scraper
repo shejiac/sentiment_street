@@ -1,0 +1,156 @@
+#There's two tables from this, one is reddit_posts, the other is reddit_comments
+# Both of them are under reddit_data
+import praw
+import os
+import time
+import datetime
+import psycopg2
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# ==========================
+# CONFIGURATION
+# ==========================
+SUBREDDIT_NAME = "Bitcoin"
+SECONDS_IN_A_DAY = 86400
+NOW_UTC = int(time.time())
+
+# ==========================
+# Reddit API (ENV VARS)
+# ==========================
+reddit = praw.Reddit(
+    client_id=os.getenv("REDDIT_CLIENT_ID"),
+    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
+    user_agent=os.getenv("REDDIT_USER_AGENT")
+)
+
+# ==========================
+# PostgreSQL Connection
+# ==========================
+conn = psycopg2.connect(
+    dbname=os.getenv("PG_DB", "reddit_data"),
+    user=os.getenv("PG_USER", "postgres"),
+    password=os.getenv("PG_PASSWORD", "your_password"),
+    host=os.getenv("PG_HOST", "localhost"),
+    port=os.getenv("PG_PORT", "5432")
+)
+cursor = conn.cursor()
+
+# ==========================
+# Create Tables as Backup
+# ==========================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS reddit_posts (
+    post_id TEXT PRIMARY KEY,
+    subreddit TEXT,
+    title TEXT,
+    body TEXT,
+    author TEXT,
+    created_utc INTEGER,
+    upvotes INTEGER,
+    score INTEGER,
+    num_comments INTEGER,
+    flair TEXT,
+    comments TEXT,
+    upvote_ratio FLOAT,
+    tickers TEXT
+);
+""")
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS reddit_comments (
+    comment_id TEXT PRIMARY KEY,
+    post_id TEXT REFERENCES reddit_posts(post_id) ON DELETE CASCADE,
+    author TEXT,
+    body TEXT,
+    score INTEGER,
+    created_utc INTEGER
+);
+""")
+conn.commit()
+
+# ==========================
+# Delete old posts and comments
+# ==========================
+#Currently, set to 3 days, so it deletes posts after three days
+DAYS_TO_KEEP = 3
+cursor.execute("""
+    DELETE FROM reddit_posts
+    WHERE created_utc < EXTRACT(EPOCH FROM NOW()) - (%s * 86400);
+""", (DAYS_TO_KEEP,))
+conn.commit()
+
+# ==========================
+# Start Scraping
+# ==========================
+print(f"Scraping started at {datetime.datetime.now()}")
+subreddit = reddit.subreddit(SUBREDDIT_NAME)
+inserted = 0
+
+for post in subreddit.new(limit=None):
+    try:
+        if int(post.created_utc) < NOW_UTC - SECONDS_IN_A_DAY:
+            break
+
+        post.comments.replace_more(limit=0)
+        top_comments = post.comments.list()[:20]
+        comments_text = " || ".join(
+            [f"{c.id}: {c.body}" for c in top_comments]
+        )
+        flair = post.link_flair_text if post.link_flair_text else ""
+
+        # Insert post
+        cursor.execute("""
+            INSERT INTO reddit_posts (
+                post_id, subreddit, title, body, author,
+                created_utc, upvotes, score, num_comments,
+                flair, comments, upvote_ratio, tickers
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (post_id) DO NOTHING;
+        """, (
+            post.id,
+            post.subreddit.display_name,
+            post.title,
+            post.selftext,
+            str(post.author) if post.author else "nan",
+            int(post.created_utc),
+            post.ups,
+            post.score,
+            post.num_comments,
+            flair,
+            comments_text,
+            post.upvote_ratio,
+            ""  # tickers placeholder
+        ))
+
+        # Insert comments
+        for c in top_comments:
+            try:
+                cursor.execute("""
+                    INSERT INTO reddit_comments (
+                        comment_id, post_id, author, body, score, created_utc
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (comment_id) DO NOTHING;
+                """, (
+                    c.id,
+                    post.id,
+                    str(c.author) if c.author else "nan",
+                    c.body,
+                    c.score,
+                    int(c.created_utc)
+                ))
+            except Exception as comment_error:
+                print(f"Failed to insert comment {c.id}: {comment_error}")
+
+        conn.commit()
+        inserted += 1
+        print(f"Inserted post: {post.id} — {post.title[:50]}...")
+        time.sleep(1)
+
+    except Exception as e:
+        print(f"Skipped post {post.id if 'post' in locals() else '[unknown]'}: {e}")
+
+cursor.close()
+conn.close()
+print(f"Done, have inserted {inserted} posts into PostgreSQL.")
