@@ -5,10 +5,9 @@ import datetime
 import psycopg2
 import ssl
 from dotenv import load_dotenv
+from prawcore.exceptions import ResponseException
 
 load_dotenv()
-
-print("Connecting to:", os.getenv("PG_HOST"))
 
 # ==========================
 # CONFIGURATION
@@ -20,17 +19,27 @@ NOW_UTC = int(time.time())
 # ==========================
 # Reddit API (ENV VARS)
 # ==========================
-reddit = praw.Reddit(
-    client_id=os.getenv("REDDIT_CLIENT_ID"),
-    client_secret=os.getenv("REDDIT_CLIENT_SECRET"),
-    user_agent=os.getenv("REDDIT_USER_AGENT"),
-    check_for_async=False
-)
+# Load environment variables
+CLIENT_ID = os.getenv("REDDIT_CLIENT_ID", "")
+CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET", "")
+USER_AGENT = os.getenv("REDDIT_USER_AGENT", "sentiment_street/0.1 by u/the_user")
+
+# Initialize Reddit instance
+try:
+    reddit = praw.Reddit(
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        user_agent=USER_AGENT,
+        check_for_async=False
+    )
+except ResponseException as e:
+    print("Reddit API authentication failed:", e)
+    exit(1)
+
 
 # ==========================
 # PostgreSQL Connection
 # ==========================
-#For Cloud Hosting
 conn = psycopg2.connect(
     dbname=os.getenv("PG_DB"),
     user=os.getenv("PG_USER"),
@@ -39,20 +48,7 @@ conn = psycopg2.connect(
     port=os.getenv("PG_PORT"),
     sslmode="require",
 )
-
-
-#For Local Hosting
-"""
-conn = psycopg2.connect(
-    dbname=os.getenv("PG_DB", "reddit_data"),
-    user=os.getenv("PG_USER", "postgres"),
-    password=os.getenv("PG_PASSWORD", "the_actual_password"),
-    host=os.getenv("PG_HOST", "localhost"),
-    port=os.getenv("PG_PORT", "5432")
-)
-"""
 cursor = conn.cursor()
-
 
 # ==========================
 # Create Tables if Needed
@@ -76,6 +72,11 @@ CREATE TABLE IF NOT EXISTS reddit_posts (
 """)
 
 cursor.execute("""
+CREATE INDEX IF NOT EXISTS idx_reddit_posts_created_utc
+ON reddit_posts (created_utc);
+""")
+
+cursor.execute("""
 CREATE TABLE IF NOT EXISTS reddit_comments (
     comment_id TEXT PRIMARY KEY,
     post_id TEXT REFERENCES reddit_posts(post_id) ON DELETE CASCADE,
@@ -90,7 +91,6 @@ conn.commit()
 # ==========================
 # Delete old posts & comments
 # ==========================
-
 DAYS_TO_KEEP = 3
 cursor.execute("""
     DELETE FROM reddit_posts
@@ -106,8 +106,8 @@ print(f"Scraping started at {datetime.datetime.now()}")
 subreddit = reddit.subreddit(SUBREDDIT_NAME)
 inserted = 0
 
-for post in subreddit.new(limit=None):
-    try:
+try:
+    for post in subreddit.new(limit=None):
         if int(post.created_utc) < NOW_UTC - SECONDS_IN_A_DAY:
             break
 
@@ -116,7 +116,7 @@ for post in subreddit.new(limit=None):
         comments_text = " || ".join(
             [f"{c.id}: {c.body}" for c in top_comments]
         )
-        flair = post.link_flair_text if post.link_flair_text else ""
+        flair = post.link_flair_text or ""
 
         # Insert post
         cursor.execute("""
@@ -166,8 +166,10 @@ for post in subreddit.new(limit=None):
         print(f"Inserted post: {post.id} — {post.title[:50]}...")
         time.sleep(1)
 
-    except Exception as e:
-        print(f"Skipped post {post.id if 'post' in locals() else '[unknown]'}: {e}")
+except ResponseException as reddit_error:
+    print("Reddit API error:", reddit_error.response.text)
+except Exception as general_error:
+    print("Error during scraping:", general_error)
 
 cursor.close()
 conn.close()
