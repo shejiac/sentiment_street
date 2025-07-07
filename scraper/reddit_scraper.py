@@ -40,13 +40,12 @@ conn = psycopg2.connect(
 )
 
 
-
 #For Local Hosting
 """
 conn = psycopg2.connect(
     dbname=os.getenv("PG_DB", "reddit_data"),
     user=os.getenv("PG_USER", "postgres"),
-    password=os.getenv("PG_PASSWORD", "your_password"),
+    password=os.getenv("PG_PASSWORD", "the_actual_password"),
     host=os.getenv("PG_HOST", "localhost"),
     port=os.getenv("PG_PORT", "5432")
 )
