@@ -1,13 +1,14 @@
-#There's two tables from this, one is reddit_posts, the other is reddit_comments
-# Both of them are under reddit_data
 import praw
 import os
 import time
 import datetime
 import psycopg2
+import ssl
 from dotenv import load_dotenv
 
 load_dotenv()
+
+print("Connecting to:", os.getenv("PG_HOST"))
 
 # ==========================
 # CONFIGURATION
@@ -28,6 +29,20 @@ reddit = praw.Reddit(
 # ==========================
 # PostgreSQL Connection
 # ==========================
+#For Cloud Hosting
+conn = psycopg2.connect(
+    dbname=os.getenv("PG_DB"),
+    user=os.getenv("PG_USER"),
+    password=os.getenv("PG_PASSWORD"),
+    host=os.getenv("PG_HOST"),
+    port=os.getenv("PG_PORT"),
+    sslmode="require",
+)
+
+
+
+#For Local Hosting
+"""
 conn = psycopg2.connect(
     dbname=os.getenv("PG_DB", "reddit_data"),
     user=os.getenv("PG_USER", "postgres"),
@@ -35,10 +50,12 @@ conn = psycopg2.connect(
     host=os.getenv("PG_HOST", "localhost"),
     port=os.getenv("PG_PORT", "5432")
 )
+"""
 cursor = conn.cursor()
 
+
 # ==========================
-# Create Tables as Backup
+# Create Tables if Needed
 # ==========================
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS reddit_posts (
@@ -71,15 +88,16 @@ CREATE TABLE IF NOT EXISTS reddit_comments (
 conn.commit()
 
 # ==========================
-# Delete old posts and comments
+# Delete old posts & comments
 # ==========================
-#Currently, set to 3 days, so it deletes posts after three days
+
 DAYS_TO_KEEP = 3
 cursor.execute("""
     DELETE FROM reddit_posts
     WHERE created_utc < EXTRACT(EPOCH FROM NOW()) - (%s * 86400);
 """, (DAYS_TO_KEEP,))
 conn.commit()
+print(f"Deleted posts and comments older than {DAYS_TO_KEEP} days.")
 
 # ==========================
 # Start Scraping
@@ -153,4 +171,4 @@ for post in subreddit.new(limit=None):
 
 cursor.close()
 conn.close()
-print(f"Done, have inserted {inserted} posts into PostgreSQL.")
+print(f"Done. Inserted {inserted} posts into PostgreSQL.")
