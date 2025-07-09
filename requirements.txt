@@ -3,8 +3,10 @@
 # Jupyter Notebook
 ipykernel
 
-# Web scraping
+# Scraper & DB
 praw
+psycopg2-binary
+python-dotenv
 
 # General DS libs
 numpy
@@ -13,5 +15,18 @@ seaborn
 matplotlib
 scikit-learn
 
+# Text cleaning
+contractions
+emoji
+langdetect
+
 # Sentiment analysis
 vaderSentiment
+torch
+transformers
+accelerate
+sentence_transformers
+bitsandbytes
+evaluate
+tokenizers
+datasets
