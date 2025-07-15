@@ -30,3 +30,8 @@ bitsandbytes
 evaluate
 tokenizers
 datasets
+
+#classifier
+bertopic
+umap-learn
+hdbscan
