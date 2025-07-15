@@ -6,6 +6,7 @@ import psycopg2
 import ssl
 from dotenv import load_dotenv
 from prawcore.exceptions import ResponseException
+import json
 
 load_dotenv()
 
@@ -15,16 +16,15 @@ load_dotenv()
 SUBREDDIT_NAME = "Bitcoin"
 SECONDS_IN_A_DAY = 86400
 NOW_UTC = int(time.time())
+LIMIT_POSTS = 100  # <-- You can adjust this safely
 
 # ==========================
 # Reddit API (ENV VARS)
 # ==========================
-# Load environment variables
 CLIENT_ID = os.getenv("REDDIT_CLIENT_ID", "")
 CLIENT_SECRET = os.getenv("REDDIT_CLIENT_SECRET", "")
 USER_AGENT = os.getenv("REDDIT_USER_AGENT", "sentiment_street/0.1 by u/the_user")
 
-# Initialize Reddit instance
 try:
     reddit = praw.Reddit(
         client_id=CLIENT_ID,
@@ -35,7 +35,6 @@ try:
 except ResponseException as e:
     print("Reddit API authentication failed:", e)
     exit(1)
-
 
 # ==========================
 # PostgreSQL Connection
@@ -89,15 +88,15 @@ CREATE TABLE IF NOT EXISTS reddit_comments (
 conn.commit()
 
 # ==========================
-# Delete old posts & comments
+# Delete old data
 # ==========================
-DAYS_TO_KEEP = 3
+DAYS_TO_KEEP = 50
 cursor.execute("""
     DELETE FROM reddit_posts
     WHERE created_utc < EXTRACT(EPOCH FROM NOW()) - (%s * 86400);
 """, (DAYS_TO_KEEP,))
 conn.commit()
-print(f"Deleted posts and comments older than {DAYS_TO_KEEP} days.")
+print(f"Deleted posts older than {DAYS_TO_KEEP} days.")
 
 # ==========================
 # Start Scraping
@@ -107,18 +106,51 @@ subreddit = reddit.subreddit(SUBREDDIT_NAME)
 inserted = 0
 
 try:
-    for post in subreddit.new(limit=None):
+    for post in subreddit.new(limit=LIMIT_POSTS):
         if int(post.created_utc) < NOW_UTC - SECONDS_IN_A_DAY:
-            break
+            continue  # Skip old posts
 
         post.comments.replace_more(limit=0)
         top_comments = post.comments.list()[:20]
-        comments_text = " || ".join(
-            [f"{c.id}: {c.body}" for c in top_comments]
-        )
-        flair = post.link_flair_text or ""
 
-        # Insert post
+        # Build comment list in target format
+        comment_json_list = []
+        for c in top_comments:
+            comment_json_list.append({
+                "comment_id": c.id if c.id else "nan",
+                "body": c.body if c.body else "nan",
+                "author": str(c.author) if c.author else "nan",
+                "score": c.score if c.score else 0,
+                "created_utc": int(c.created_utc) if c.created_utc else -1
+            })
+        
+        if not comment_json_list:
+            comment_json_list = [{
+                "comment_id": "nan",
+                "body": "nan",
+                "author": "nan",
+                "score": 0,
+                "created_utc": -1
+            }]
+        
+        post_data = {
+            "post_id": post.id if post.id else "nan",
+            "subreddit": post.subreddit.display_name if post.subreddit else "nan",
+            "title": post.title if post.title else "nan",
+            "body": post.selftext if post.selftext else "nan",
+            "author": str(post.author) if post.author else "nan",
+            "created_utc": int(post.created_utc) if post.created_utc else -1,
+            "upvotes": post.ups if post.ups else 0,
+            "score": post.score if post.score else 0,
+            "num_comments": post.num_comments if post.num_comments else 0,
+            "flair": [post.link_flair_text] if post.link_flair_text else [],
+            "comments": comment_json_list,
+            "upvote_ratio": post.upvote_ratio if post.upvote_ratio else 0.0,
+            "tickers": []
+        }
+
+
+        # Insert into posts table
         cursor.execute("""
             INSERT INTO reddit_posts (
                 post_id, subreddit, title, body, author,
@@ -127,19 +159,19 @@ try:
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (post_id) DO NOTHING;
         """, (
-            post.id,
-            post.subreddit.display_name,
-            post.title,
-            post.selftext,
-            str(post.author) if post.author else "nan",
-            int(post.created_utc),
-            post.ups,
-            post.score,
-            post.num_comments,
-            flair,
-            comments_text,
-            post.upvote_ratio,
-            ""  # tickers placeholder
+            post_data["post_id"],
+            post_data["subreddit"],
+            post_data["title"],
+            post_data["body"],
+            post_data["author"],
+            post_data["created_utc"],
+            post_data["upvotes"],
+            post_data["score"],
+            post_data["num_comments"],
+            json.dumps(post_data["flair"]),
+            json.dumps(post_data["comments"]),
+            post_data["upvote_ratio"],
+            json.dumps(post_data["tickers"])
         ))
 
         # Insert comments
@@ -155,7 +187,7 @@ try:
                     post.id,
                     str(c.author) if c.author else "nan",
                     c.body,
-                    c.score,
+                    c.score, # score (net upvote) = upvote - downvote
                     int(c.created_utc)
                 ))
             except Exception as comment_error:
