@@ -117,12 +117,12 @@ def sentiment_analysis_pipeline(
     Returns:
         pd.DataFrame: DataFrame with sentiment analysis results."""
 
-    # Alert user if the DataFrame is empty
+    # Alert if the DataFrame is empty
     if df.empty:
         print("DataFrame is empty. Returning an empty DataFrame.")
         return None
 
-    # Alert user if id and text columns are not in the DataFrame
+    # Alert if id and text columns are not in the DataFrame
     if id_column not in df.columns or not all(
         col in df.columns for col in text_columns
     ):
@@ -130,6 +130,12 @@ def sentiment_analysis_pipeline(
             f"The DataFrame does not contain the specified ID column or text columns."
         )
         return None
+
+    # Warn if torch is current using CPU instead of GPU
+    if not torch.cuda.is_available():
+        print(
+            "Warning: Torch is currently using CPU. Sentiment analysis will be slower than expected."
+        )
 
     # Repeat for each text column
     for text_column in text_columns:
