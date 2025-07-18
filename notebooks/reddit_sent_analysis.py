@@ -68,79 +68,79 @@ print("Columns in comments_scores_df:", comments_scores_df.columns)
 # ==========================
 # Create Tables if Needed
 # ==========================
-# cursor.execute(
-#     """
-# CREATE TABLE IF NOT EXISTS reddit_posts_scores (
-#     post_id TEXT PRIMARY KEY,
-#     title TEXT,
-#     body TEXT,
-#     score INTEGER,
-#     cleaned_title TEXT,
-#     compound_score_title FLOAT,
-#     sentiment_label_title TEXT,
-#     cleaned_body TEXT,
-#     compound_score_body FLOAT,
-#     sentiment_label_body TEXT
-# );
-# """
-# )
+cursor.execute(
+    """
+CREATE TABLE IF NOT EXISTS reddit_posts_scores (
+    post_id TEXT PRIMARY KEY,
+    title TEXT,
+    body TEXT,
+    score INTEGER,
+    cleaned_title TEXT,
+    compound_score_title FLOAT,
+    sentiment_label_title TEXT,
+    cleaned_body TEXT,
+    compound_score_body FLOAT,
+    sentiment_label_body TEXT
+);
+"""
+)
 
-# cursor.execute(
-#     """
-# CREATE TABLE IF NOT EXISTS reddit_comments_scores (
-#     comment_id TEXT PRIMARY KEY,
-#     body TEXT,
-#     score INTEGER,
-#     cleaned_body TEXT,
-#     compound_score_body FLOAT,
-#     sentiment_label_body TEXT
-# );
-# """
-# )
-# conn.commit()
+cursor.execute(
+    """
+CREATE TABLE IF NOT EXISTS reddit_comments_scores (
+    comment_id TEXT PRIMARY KEY,
+    body TEXT,
+    score INTEGER,
+    cleaned_body TEXT,
+    compound_score_body FLOAT,
+    sentiment_label_body TEXT
+);
+"""
+)
+conn.commit()
 
-# # ==========================
-# # Insert DataFrame entries into the tables
-# # ==========================
-# Don't keep the sentiment scores list, just the compound score and sentiment label
-# posts_scores_df = posts_scores_df[["posts_id", "title", "body", "score", "cleaned_title", "compound_score_title", "sentiment_label_title", "cleaned_body", "compound_score_body", "sentiment_label_body"]]
-# posts_scores_df = posts_scores_df.where(
-#     pd.notnull(posts_scores_df), None
-# )  # Replace all NaN value with None so that it's empty in CSV
-# posts_scores_buffer = StringIO()
-# posts_scores_df.to_csv(posts_scores_buffer, index=False, header=False)
-# posts_scores_buffer.seek(0)
+# ==========================
+# Insert DataFrame entries into the tables
+# ==========================
+Don't keep the sentiment scores list, just the compound score and sentiment label
+posts_scores_df = posts_scores_df[["posts_id", "title", "body", "score", "cleaned_title", "compound_score_title", "sentiment_label_title", "cleaned_body", "compound_score_body", "sentiment_label_body"]]
+posts_scores_df = posts_scores_df.where(
+    pd.notnull(posts_scores_df), None
+)  # Replace all NaN value with None so that it's empty in CSV
+posts_scores_buffer = StringIO()
+posts_scores_df.to_csv(posts_scores_buffer, index=False, header=False)
+posts_scores_buffer.seek(0)
 
-# Don't keep the sentiment scores list, just the compound score and sentiment label
-# comments_scores_df = comments_scores_df[["comment_id", "body", "score", "cleaned_body", "compound_score_body", "sentiment_label_body"]]
-# comments_scores_df = comments_scores_df.where(
-#     pd.notnull(comments_scores_df), None
-# )  # Replace all NaN value with None so that it's empty in CSV (comments_scores_df doesn't usually have nulls, but just to be sure)
-# comments_scores_buffer = StringIO()
-# comments_scores_df.to_csv(comments_scores_buffer, index=False, header=False)
-# comments_scores_buffer.seek(0)
+Don't keep the sentiment scores list, just the compound score and sentiment label
+comments_scores_df = comments_scores_df[["comment_id", "body", "score", "cleaned_body", "compound_score_body", "sentiment_label_body"]]
+comments_scores_df = comments_scores_df.where(
+    pd.notnull(comments_scores_df), None
+)  # Replace all NaN value with None so that it's empty in CSV (comments_scores_df doesn't usually have nulls, but just to be sure)
+comments_scores_buffer = StringIO()
+comments_scores_df.to_csv(comments_scores_buffer, index=False, header=False)
+comments_scores_buffer.seek(0)
 
-# try:
-#     cursor.copy_from(
-#         posts_scores_buffer,
-#         "reddit_posts_scores",
-#         sep=",",
-#         null="",
-#     )
-# except Exception as e:
-#     print("Error during insertion to reddit_posts_scores:", e)
+try:
+    cursor.copy_from(
+        posts_scores_buffer,
+        "reddit_posts_scores",
+        sep=",",
+        null="",
+    )
+except Exception as e:
+    print("Error during insertion to reddit_posts_scores:", e)
 
-# try:
+try:
 
-#     cursor.copy_from(
-#         comments_scores_buffer,
-#         "reddit_comments_scores",
-#         sep=",",
-#         null="",
-#     )
-# except Exception as e:
-#     print("Error during insertion to reddit_comments_scores:", e)
+    cursor.copy_from(
+        comments_scores_buffer,
+        "reddit_comments_scores",
+        sep=",",
+        null="",
+    )
+except Exception as e:
+    print("Error during insertion to reddit_comments_scores:", e)
 
-# cursor.close()
-# conn.close()
-# print(f"Done. Inserted posts and comments with sentiment scores into PostgreSQL.")
+cursor.close()
+conn.close()
+print(f"Done. Inserted posts and comments with sentiment scores into PostgreSQL.")
