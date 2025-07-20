@@ -1,300 +1,144 @@
+import os
+import json
 import pandas as pd
 import numpy as np
-from sentence_transformers import SentenceTransformer, util
-from bertopic import BERTopic
-from umap import UMAP
-from hdbscan import HDBSCAN
-from sklearn.feature_extraction.text import CountVectorizer
+from datetime import datetime
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+from sentence_transformers import SentenceTransformer
+from nltk.corpus import stopwords
+import nltk
+import re
 
-EMBEDDING_MODEL_NAME = 'all-MiniLM-L6-v2'
-TOP_N = 5  # Top N most relevant examples to keep per topic
-SIMILARITY_THRESHOLD = 0.4  # Minimum confidence score
-DYNAMIC_TOPIC_PREFIX = "NEW_"  # Prefix for auto-discovered topics
+nltk.download('stopwords')
+STOPWORDS = set(stopwords.words('english'))
 
-def clean_text_data(df):
-    """Ensure all text fields are strings and handle missing values"""
-    text_cols = ['title', 'comments']
-    for col in text_cols:
-        if col in df:
-            df[col] = df[col].astype(str).replace('nan', '').replace('None', '')
-    return df
+# === Parameters ===
+DATA_PATH = os.path.join("notebooks", "comments_df_with_scores.csv")
+EXAMPLES_JSON = "topic_examples.json"
+TOP_N_COMMENTS_PER_TOPIC = 5
+UNCLASSIFIED_EXPORT_PATH = "unclassified_for_review.csv"
+SIMILARITY_THRESHOLD = 0.15
+MIN_WORD_COUNT = 4
 
-df = pd.read_csv("data/raw_reddit_data.csv")
-df = clean_text_data(df)
-df['combined'] = df['title'] + " - " + df['comments']
+def is_junk_comment(text):
+    if not isinstance(text, str) or not text.strip():
+        return True
 
-topic_data = {
-    "Price Movement": {
-        "examples": [
-            "BTC just hit a new ATH of $70k!",
-            "Why did Bitcoin dump 15% today?",
-            "Price broke resistance at $30k.",
-            "Market is tanking after CPI data release.",
-            "Bitcoin surged after ETF approval rumors.",
-            "Volatility is insane today.",
-            "Bulls are losing control.",
-            "This pullback looks healthy.",
-            "Bitcoin holding strong above 20k.",
-            "Bear market is confirmed?"
-        ],
-        "keywords": ["price", "ATH", "support", "resistance", "bullish", "bearish", "pump", "dump", "volatility", "crash", "surge"]
-    },
-
-    "Trading & TA": {
-        "examples": [
-            "RSI is signaling overbought territory.",
-            "MACD just crossed bearish on the daily chart.",
-            "I'm watching this ascending triangle breakout.",
-            "EMA 200 is acting as support again.",
-            "Volume is drying up — breakout coming?",
-            "Golden cross confirmed!",
-            "This looks like a classic bull flag.",
-            "Setting a stop loss below key support.",
-            "Targeting $30k if this level holds.",
-            "Breakout from symmetrical triangle imminent."
-        ],
-        "keywords": ["RSI", "MACD", "technical analysis", "chart", "pattern", "candlestick", "indicator", "EMA", "trendline", "breakout", "volume", "stop loss"]
-    },
-
-    "Mining": {
-        "examples": [
-            "Bitcoin mining uses too much electricity.",
-            "Hashrate dropped significantly this week.",
-            "New ASIC miners are more energy efficient.",
-            "China’s mining ban crushed global hashrate.",
-            "Mining difficulty just adjusted upwards.",
-            "Hydropower helps reduce mining carbon footprint.",
-            "Miners are capitulating.",
-            "North America is becoming the mining hub.",
-            "Mining rewards are getting smaller.",
-            "Can home mining still be profitable?"
-        ],
-        "keywords": ["mining", "hashrate", "ASIC", "difficulty", "energy", "miners", "proof of work", "block reward", "carbon", "electricity"]
-    },
-
-    "Regulation & Policy": {
-        "examples": [
-            "The SEC rejected another Bitcoin ETF.",
-            "New crypto tax laws coming in 2025.",
-            "El Salvador legalized Bitcoin.",
-            "India plans to ban private cryptocurrencies.",
-            "Gensler testifies on crypto before Congress.",
-            "EU Parliament passes MiCA legislation.",
-            "Bitcoin classified as a commodity, not security.",
-            "FATF pushes for stricter KYC.",
-            "Biden’s executive order on crypto regulation.",
-            "Japan tightening crypto exchange laws."
-        ],
-        "keywords": ["regulation", "SEC", "ETF", "ban", "compliance", "KYC", "AML", "legislation", "approval", "policy", "tax", "law", "Gensler", "MiCA"]
-    },
-
-    "Adoption & Use Cases": {
-        "examples": [
-            "Starbucks now accepts Bitcoin!",
-            "Bitcoin used for remittances in Africa.",
-            "McDonald's accepts BTC in Switzerland.",
-            "More countries exploring CBDCs.",
-            "Lightning Network brings fast payments.",
-            "Another city installs Bitcoin ATMs.",
-            "Bitcoin donations spike during crisis.",
-            "Retailers start taking crypto payments.",
-            "BTC accepted for real estate in Portugal.",
-            "University tuition payable with BTC."
-        ],
-        "keywords": ["adoption", "payment", "merchant", "accept", "real-world use", "legal tender", "ATM", "use case", "remittance", "retail"]
-    },
-
-    "Technology & Network": {
-        "examples": [
-            "Taproot activation improves smart contracts.",
-            "Lightning Network capacity reaches new high.",
-            "Running a full node is easier now.",
-            "SegWit improves transaction throughput.",
-            "Bitcoin Core releases v25.0.",
-            "Mempool congestion is causing delays.",
-            "New layer 2 protocol integrates with BTC.",
-            "On-chain fees are spiking.",
-            "Privacy features are getting better.",
-            "How to set up a Lightning node?"
-        ],
-        "keywords": ["lightning", "taproot", "segwit", "node", "layer 2", "upgrade", "soft fork", "mempool", "core", "transaction", "on-chain"]
-    },
-
-    "Security & Hacks": {
-        "examples": [
-            "Ledger suffered a major data breach.",
-            "Phishing scam drained $2 million in BTC.",
-            "Use cold wallets, not exchanges.",
-            "Seed phrase should never be shared.",
-            "Mt. Gox repayment causing fear.",
-            "Scammers impersonating influencers on X.",
-            "Another exchange got hacked!",
-            "Multisig is more secure.",
-            "SIM swap attack stole my crypto.",
-            "Hardware wallets are essential."
-        ],
-        "keywords": ["hack", "phishing", "scam", "wallet", "security", "breach", "exploit", "seed phrase", "cold storage", "private key"]
-    },
-
-    "Macro & Market Sentiment": {
-        "examples": [
-            "Bitcoin reacts to Fed's interest rate pause.",
-            "Recession fears drive BTC demand.",
-            "Dollar index impacting Bitcoin volatility.",
-            "BTC behaves like digital gold.",
-            "Inflation reports boost crypto market.",
-            "Bitcoin decoupling from equities?",
-            "Stocks down, crypto green.",
-            "CPI numbers better than expected.",
-            "Fear & Greed Index signals extreme fear.",
-            "Will Bitcoin outperform gold this year?"
-        ],
-        "keywords": ["macro", "inflation", "interest rate", "fed", "usd", "DXY", "gold", "recession", "risk", "CPI", "fear and greed"]
-    },
-
-    "Memes & Culture": {
-        "examples": [
-            "HODL until $100k!",
-            "WAGMI bros! 🚀",
-            "Laser eyes till the moon!",
-            "Degen plays only.",
-            "When Lambo?",
-            "Don't be a paper hands.",
-            "Rug pull incoming? 😂",
-            "Diamond hands all the way.",
-            "We’re so back!",
-            "Bitcoin is freedom, frens."
-        ],
-        "keywords": ["HODL", "WAGMI", "moon", "laser eyes", "lambo", "rekt", "diamond hands", "degen", "NGMI", "vibes"]
-    },
-
-    "Scams & FUD": {
-        "examples": [
-            "Bitconnect was a total scam.",
-            "Fake giveaways on Twitter are back.",
-            "This FUD is just market manipulation.",
-            "Binance insolvency rumors again.",
-            "Another rug pull just happened.",
-            "Scammers cloning influencer accounts.",
-            "Tether FUD resurfaces.",
-            "Fear spreads after fake ETF news.",
-            "Ponzi alert in Telegram group!",
-            "Scam bots spamming the comments."
-        ],
-        "keywords": ["scam", "fud", "fraud", "giveaway", "rug pull", "fake news", "bitconnect", "ponzi", "manipulation", "bots"]
-    }
-}
-
-embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-
-# Precompute topic embeddings
-topic_embeddings = {
-    topic: embedding_model.encode(data["examples"])
-    for topic, data in topic_data.items()
-}
-
-def classify_with_predefined(text):
-    """Classify text using predefined topics"""
-    text_emb = embedding_model.encode(text)
-    best_topic = None
-    best_score = -1
+    tokens = text.split()
     
-    for topic, example_embs in topic_embeddings.items():
-        similarity = util.cos_sim(text_emb, example_embs).max().item()
-        if similarity > best_score:
-            best_score = similarity
-            best_topic = topic
-            
-    return best_topic, best_score
+    # Rule 1: Too short
+    if len(tokens) < MIN_WORD_COUNT:
+        return True
 
-def run_bertopic(texts):
-    """Discover new topics using BERTopic with proper validation"""
-    if len(texts) < 10:  # Minimum documents required
-        print(f"Not enough documents for BERTopic (only {len(texts)} available)")
-        return None, None, None
-    
-    # Initialize models with conservative parameters
-    umap_model = UMAP(n_neighbors=5, n_components=3, min_dist=0.1)
-    hdbscan_model = HDBSCAN(min_cluster_size=5, gen_min_span_tree=True)
-    vectorizer_model = CountVectorizer(stop_words="english", min_df=2)
-    
-    try:
-        topic_model = BERTopic(
-            embedding_model=embedding_model,
-            umap_model=umap_model,
-            hdbscan_model=hdbscan_model,
-            vectorizer_model=vectorizer_model,
-            min_topic_size=5,
-            verbose=False
-        )
-        
-        # Validate embeddings first
-        embeddings = embedding_model.encode(texts)
-        if len(embeddings) == 0 or embeddings.shape[0] == 0:
-            raise ValueError("Empty embeddings generated")
-            
-        topics, probs = topic_model.fit_transform(texts, embeddings)
-        return topic_model, topics, probs
-        
-    except Exception as e:
-        print(f"BERTopic failed: {str(e)}")
-        return None, None, None
+    # Rule 2: Only stopwords
+    if all(word.lower() in STOPWORDS for word in tokens):
+        return True
 
-# First pass: classify with predefined topics
-results = df['combined'].apply(lambda x: classify_with_predefined(x))
-df['topic'] = results.apply(lambda x: x[0])
-df['similarity'] = results.apply(lambda x: x[1])
+    # Rule 3: Contains only special characters or gibberish
+    if re.fullmatch(r"[^a-zA-Z0-9\s]+", text):
+        return True
 
-# Second pass: discover new topics from unclassified
-unclassified = df[df['topic'].isna() | (df['similarity'] < SIMILARITY_THRESHOLD)]
-if len(unclassified) >= 10:  # Only run if enough unclassified docs
-    print(f"Running BERTopic on {len(unclassified)} unclassified comments...")
-    topic_model, new_topics, _ = run_bertopic(unclassified['combined'].tolist())
-    
-    if topic_model is not None:
-        # Process new topics
-        topic_info = topic_model.get_topic_info()
-        valid_topics = topic_info[topic_info['Topic'] != -1]
-        
-        # Update dataframe
-        for idx, row in unclassified.iterrows():
-            loc = unclassified.index.get_loc(idx)
-            if loc < len(new_topics):  # Safety check
-                topic_id = new_topics[loc]
-                if topic_id != -1:
-                    df.at[idx, 'topic'] = f"{DYNAMIC_TOPIC_PREFIX}{topic_id}"
-                    df.at[idx, 'similarity'] = 0.9  # High confidence for new topics
+    # Rule 4: Repeated characters (e.g., "loooool", "?????", "!!!!")
+    if re.fullmatch(r"(.)\1{4,}", text.replace(" ", "")):
+        return True
 
-        print(f"Discovered {len(valid_topics)} new topics")
-    else:
-        print("No new topics discovered")
-else:
-    print(f"Only {len(unclassified)} unclassified comments - skipping BERTopic")
+    # Rule 5: Contains only emojis or emoticons
+    if re.fullmatch(r"[\U00010000-\U0010ffff\W\s]+", text):
+        return True
 
+    # Rule 6: Mostly non-alphabetic (e.g., links, symbols)
+    num_alpha = sum(c.isalpha() for c in text)
+    num_total = len(text)
+    if num_alpha / max(num_total, 1) < 0.3:
+        return True
+
+    # Rule 7: One or two words repeated many times (e.g., "yes yes yes yes yes")
+    if len(set(tokens)) <= 2 and len(tokens) > 5:
+        return True
+
+    return False
+
+df = pd.read_csv(DATA_PATH)[['cleaned_comment']]
+df = df[~df['cleaned_comment'].map(is_junk_comment)].reset_index(drop=True)
+
+with open(EXAMPLES_JSON, "r", encoding="utf-8") as f:
+    topic_data = json.load(f)
+
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# === Prepare training data ===
+train_texts = []
+train_labels = []
+for topic, data in topic_data.items():
+    for example in data["examples"]:
+        if not is_junk_comment(example):
+            train_texts.append(example)
+            train_labels.append(topic)
+
+train_embeddings = embedding_model.encode(train_texts, convert_to_tensor=False)
+
+# Encode labels for sklearn
+label_encoder = LabelEncoder()
+train_y = label_encoder.fit_transform(train_labels)
+
+# === Train Logistic Regression ===
+clf = LogisticRegression(max_iter=1000)
+clf.fit(train_embeddings, train_y)
+
+# === Predict on actual comments ===
+comment_embeddings = embedding_model.encode(df['cleaned_comment'].tolist(), show_progress_bar=False)
+pred_probs = clf.predict_proba(comment_embeddings)
+pred_labels = clf.predict(comment_embeddings)
+
+# Assign topic and confidence
+max_probs = pred_probs.max(axis=1)
+df['suggested_topic'] = label_encoder.inverse_transform(pred_labels)
+df['similarity'] = max_probs  # Treating classifier confidence like similarity
+
+# Use threshold
+df['topic'] = df.apply(lambda x: x['suggested_topic'] if x['similarity'] >= SIMILARITY_THRESHOLD else None, axis=1)
+
+# === Export unclassified ===
+unclassified = df[df['topic'].isna()].copy()
+unclassified['manual_topic'] = ""
+unclassified[['cleaned_comment', 'suggested_topic', 'similarity', 'manual_topic']].to_csv(
+    UNCLASSIFIED_EXPORT_PATH, index=False
+)
+print(f"Exported {len(unclassified)} unclassified comments to {UNCLASSIFIED_EXPORT_PATH}")
+
+# === Summarize top comments per topic ===
+classified = df[df['topic'].notna()]
 top_comments = (
-    df[~df['topic'].isna()]
-    .sort_values('similarity', ascending=False)
-    .groupby('topic')
-    .head(TOP_N)
-    .sort_values(['topic', 'similarity'], ascending=[True, False])
+    classified
+    .sort_values(by="similarity", ascending=False)
+    .groupby("topic")
+    .head(TOP_N_COMMENTS_PER_TOPIC)
+    .reset_index(drop=True)
 )
 
-top_comments_display = top_comments[['topic', 'combined', 'similarity']]
-top_comments_display['similarity'] = top_comments_display['similarity'].round(3)
+topic_stats = (
+    top_comments
+    .groupby('topic')
+    .agg(
+        comment_count=('cleaned_comment', 'count'),
+        avg_similarity=('similarity', 'mean')
+    )
+    .sort_values(by=['comment_count', 'avg_similarity'], ascending=[False, False])
+    .reset_index()
+)
+topic_stats['rank'] = range(1, len(topic_stats) + 1)
 
-print("\n=== Final Classification Results ===")
-print(df[['combined', 'topic', 'similarity']])
+# === Save summaries ===
+today_str = datetime.today().strftime('%Y%m%d')
+topic_summary_path = f"topic_rank_summary_{today_str}.csv"
+topic_stats[['rank', 'topic', 'comment_count', 'avg_similarity']].to_csv(topic_summary_path, index=False)
+print(f"Saved topic rank summary to: {topic_summary_path}")
 
-print("\n=== Top 5 Comments per Topic ===")
-for topic, group in top_comments.groupby('topic'):
-    print(f"\n--- {topic} ---")
-    for _, row in group.iterrows():
-        comment = row['combined']
-        truncated = (comment[:97] + "...") if len(comment) > 100 else comment
-        print(f"[{row['similarity']:.2f}] {truncated}")
-
-print("\n=== New Topics Discovered ===")
-if 'topic_model' in locals() and topic_model is not None:
-    print(topic_model.get_topic_info())
-else:
-    print("No topic model available. Skipping topic discovery output.")
+top_comments = pd.merge(top_comments, topic_stats[['topic', 'rank']], on='topic', how='left')
+top_comments.rename(columns={'cleaned_comment': 'comment', 'rank': 'topic_rank'}, inplace=True)
+top_comments = top_comments.sort_values(by=['topic_rank', 'similarity'], ascending=[True, False])
+top_comments[['topic_rank', 'topic', 'similarity', 'comment']].to_csv(
+    f"top_comments_by_topic_{today_str}.csv", index=False
+)
+print(f"Saved top comments by topic to: top_comments_by_topic_{today_str}.csv")

@@ -1,0 +1,285 @@
+{
+  "NFT": {
+    "examples": [
+      "Just minted my first NFT on OpenSea!",
+      "Why are Bored Ape prices crashing?",
+      "This artist's NFT collection sold out in seconds.",
+      "How do royalties work for NFT creators?",
+      "Scam alert: Fake Pudgy Penguins mint site!",
+      "Best wallets for storing NFTs securely?",
+      "Metaverse land sales are getting crazy.",
+      "Why do some NFTs have utility and others don't?",
+      "My NFT lost 90% of its value… rug pull?",
+      "Gas fees are too high to mint anything today.",
+      "How are Ordinals impacting Bitcoin's narrative?",
+      "Are NFTs still relevant in 2025?",
+      "Exploring phygital NFTs and their real-world uses.",
+      "GameFi projects integrating NFTs for in-game assets.",
+      "The future of NFT ticketing for events."
+    ],
+    "keywords": [
+      "NFT", "OpenSea", "mint", "royalties", "PFP", "ERC-721", "blue chip",
+      "metaverse", "floor price", "gas war", "rug pull", "collectible",
+      "Ordinals", "Bitcoin NFTs", "phygital", "GameFi", "digital identity",
+      "IP rights", "NFT marketplace"
+    ]
+  },
+  "DeFi": {
+    "examples": [
+      "Yield farming on Aave is giving me 12% APY.",
+      "Impermanent loss explained for beginners.",
+      "Why did my stablecoin pool rewards drop?",
+      "Best DeFi platforms for passive income?",
+      "Scam alert: Fake Uniswap phishing site!",
+      "How to bridge assets to Arbitrum?",
+      "Compound vs. Aave—which is better for lending?",
+      "My transaction failed due to slippage… help!",
+      "DeFi insurance protocols worth using?",
+      "Why is TVL dropping across all DeFi projects?",
+      "What are real-world assets (RWAs) in DeFi?",
+      "Perpetual futures on decentralized exchanges.",
+      "Liquid staking derivatives (LSDs) explained.",
+      "Exploring cross-chain DeFi solutions.",
+      "Flash loan attacks are getting more sophisticated."
+    ],
+    "keywords": [
+      "DeFi", "yield farming", "liquidity pool", "APY", "TVL", "Aave", "Compound",
+      "Uniswap", "impermanent loss", "staking", "flash loan", "oracle",
+      "RWA", "real-world assets", "LSDs", "liquid staking", "DEX", "perpetuals",
+      "bridging", "cross-chain", "DEX aggregator"
+    ]
+  },
+  "Security": {
+    "examples": [
+      "My wallet was drained after clicking a phishing link.",
+      "Best cold storage options for long-term holders?",
+      "2FA is a must for exchanges—enable it now!",
+      "How to recover a hacked MetaMask account?",
+      "Ledger vs. Trezor: which is more secure?",
+      "This new smart contract exploit drained $50M.",
+      "Never share your seed phrase—even with 'support'.",
+      "How to spot a fake hardware wallet?",
+      "Audit reports for this project look sketchy.",
+      "SIM swap attacks are targeting crypto users.",
+      "Decentralized identity solutions for Web3 security.",
+      "The rise of physical attacks on crypto holders.",
+      "Understanding zero-knowledge proofs for privacy and security.",
+      "Preventing dusting attacks on your wallet.",
+      "Are multi-sig wallets truly unhackable?"
+    ],
+    "keywords": [
+      "hack", "phishing", "security", "private key", "seed phrase", "2FA",
+      "wallet", "cold storage", "Ledger", "Trezor", "exploit", "audit",
+      "self-custody", "multi-sig", "ZKP", "zero-knowledge", "decentralized identity",
+      "social engineering", "scam"
+    ]
+  },
+  "Macro Market": {
+    "examples": [
+      "How will Fed rate hikes affect crypto?",
+      "Bitcoin as a hedge against inflation.",
+      "Stock market crash dragging crypto down.",
+      "DXY strength correlates with BTC dips.",
+      "QE ending—time to exit risky assets?",
+      "Gold vs. Bitcoin in a recession.",
+      "Institutional inflows hit record highs.",
+      "Why crypto rallies when USD weakens.",
+      "Geopolitical tensions driving BTC demand.",
+      "Liquidity crunch coming—prepare now.",
+      "Impact of central bank digital currencies (CBDCs) on crypto.",
+      "Election year politics and crypto policy.",
+      "The role of Bitcoin ETFs in market dynamics.",
+      "Analyzing on-chain metrics for macro trends.",
+      "Global regulatory frameworks affecting market sentiment."
+    ],
+    "keywords": [
+      "Fed", "inflation", "recession", "interest rates", "QE", "macro",
+      "economy", "S&P 500", "DXY", "geopolitical", "liquidity", "institutional",
+      "ETF", "spot ETF", "halving", "Bitcoin halving", "TradFi", "on-chain analytics"
+    ]
+  },
+  "Adoption & Use Case": {
+    "examples": [
+      "Visa now supports USDC payments.",
+      "Why more businesses should accept crypto.",
+      "Real-world DeFi applications beyond speculation.",
+      "Amazon rumors: BTC payments coming?",
+      "CBDCs will kill privacy coins.",
+      "Banking the unbanked with blockchain.",
+      "This country just made Bitcoin legal tender.",
+      "NFTs for concert tickets—game changer.",
+      "Supply chain tracking via crypto.",
+      "Energy companies using blockchain for carbon credits.",
+      "Web3 gaming: play-to-earn models and true asset ownership.",
+      "Decentralized physical infrastructure networks (DePIN).",
+      "Blockchain in healthcare for patient data management.",
+      "Tokenization of real estate and other tangible assets.",
+      "How DAOs are redefining organizational structures."
+    ],
+    "keywords": [
+      "adoption", "partnership", "merchant", "payment", "institutional",
+      "use case", "utility", "real-world", "banking", "Visa", "CBDC",
+      "Web3 gaming", "Play-to-Earn", "DePIN", "supply chain", "DAO", "tokenization",
+      "enterprise blockchain"
+    ]
+  },
+  "Regulation & Policy": {
+    "examples": [
+      "SEC delays Bitcoin ETF decision again.",
+      "How will the new EU MiCA laws affect DeFi?",
+      "IRS crypto tax reporting rules explained.",
+      "China’s crypto ban: What it really means.",
+      "Gary Gensler’s latest speech analyzed.",
+      "FATF travel rule impacting exchanges.",
+      "Stablecoin regulations incoming—prepare.",
+      "How to report crypto taxes in the U.S.",
+      "Senator proposes total DeFi ban.",
+      "CFTC vs. SEC jurisdiction battle heats up.",
+      "New stablecoin legislation signed into law.",
+      "Global efforts for crypto regulatory clarity.",
+      "Privacy concerns surrounding CBDCs.",
+      "KYC/AML compliance for decentralized protocols.",
+      "Court cases impacting crypto legal precedents."
+    ],
+    "keywords": [
+      "regulation", "SEC", "IRS", "tax", "compliance", "ban", "legal",
+      "lawsuit", "MiCA", "government", "policy", "KYC", "AML", "FATF",
+      "stablecoin regulation", "jurisdiction", "CFTC", "CBDC"
+    ]
+  },
+  "Scam": {
+    "examples": [
+      "Avoid this fake Ledger support Twitter account!",
+      "Rug pull alert: Devs dumped tokens overnight.",
+      "How to spot phishing emails pretending to be MetaMask.",
+      "This 'airdrop' is stealing wallets—don’t connect!",
+      "Fake Elon Musk giveaway scams still circulating.",
+      "Ponzi scheme disguised as a 'yield aggregator'.",
+      "Malware hidden in 'crypto wallet' Chrome extension.",
+      "Impersonation scams on Discord are getting clever.",
+      "Fake mining pools stealing your hashrate.",
+      "Twitter bots shilling pump-and-dump coins.",
+      "Beware of deepfake scams in crypto.",
+      "The increasing sophistication of crypto money laundering.",
+      "Identity theft targeting crypto users.",
+      "Warning about 'too good to be true' investment platforms.",
+      "How to verify legitimate crypto projects."
+    ],
+    "keywords": [
+      "scam", "rug pull", "ponzi", "fake", "phishing", "honeypot",
+      "exit scam", "malware", "impersonation", "blacklist", "verified",
+      "airdrop scam", "pig butchering", "money laundering", "deepfake", "due diligence"
+    ]
+  },
+  "Trading": {
+    "examples": [
+      "Best entry point for SOL right now?",
+      "My swing trading strategy for altcoins.",
+      "Stop-loss saved me from the dip.",
+      "Leveraged long on BTC—wish me luck.",
+      "Order book shows massive sell wall at $60k.",
+      "Whale accumulation detected—bullish signal.",
+      "Arbitrage opportunities between CEX/DEX.",
+      "Sniper bot front-running my trades…",
+      "How to use Fibonacci retracements?",
+      "Market makers manipulating prices?",
+      "Understanding order flow and liquidity in crypto.",
+      "The psychology of trading: managing fear and greed.",
+      "Automated trading bots: pros and cons.",
+      "Impact of high-frequency trading on crypto markets.",
+      "Derivatives trading in a volatile market."
+    ],
+    "keywords": [
+      "trading", "entry", "exit", "leverage", "short", "long", "stop-loss",
+      "take-profit", "liquidation", "order book", "whale", "slippage",
+      "technical analysis", "fundamental analysis", "arbitrage", "front-running",
+      "trading bot", "derivatives", "futures", "options", "volatility"
+    ]
+  },
+  "Mining": {
+    "examples": [
+      "ETH 2.0 staking rewards calculator.",
+      "GPU mining profitability after the Merge.",
+      "Best PoS validators for passive income.",
+      "ASIC vs. GPU mining in 2024.",
+      "Mining pool stealing hashrate?",
+      "How to reduce electricity costs for mining.",
+      "Solo mining Bitcoin—still possible?",
+      "Next-gen mining rigs announced.",
+      "Mining centralization concerns growing.",
+      "EIP-1559 killed miner revenue.",
+      "The shift from PoW to PoS and its implications.",
+      "Cloud mining services: legitimate or scam?",
+      "Environmental impact of crypto mining.",
+      "Energy efficiency in blockchain protocols.",
+      "Decentralized mining pools and their benefits."
+    ],
+    "keywords": [
+      "mining", "staking", "validator", "PoW", "PoS", "hashrate",
+      "difficulty", "reward", "APY", "node", "pool", "Merge", "EIP-1559",
+      "ASIC", "GPU", "cloud mining", "energy consumption", "decentralization"
+    ]
+  },
+  "Conversational": {
+    "examples": [
+      "What got you into crypto?",
+      "Daily discussion thread - April 5.",
+      "AMA with the founder of Project X.",
+      "Shill me your favorite altcoin.",
+      "How do you store your crypto?",
+      "Best crypto podcasts to listen to?",
+      "Debate: Bitcoin maxis vs. altcoiners.",
+      "Crypto memes that aged poorly.",
+      "Who’s the most trustworthy influencer?",
+      "Just lost 50% of my portfolio—vent here.",
+      "What are your predictions for Bitcoin's price by year-end?",
+      "Favorite Web3 projects to watch in 2025?",
+      "How do you explain blockchain to a beginner?",
+      "Share your biggest crypto success/failure story.",
+      "Any new crypto books or resources you recommend?"
+    ],
+    "keywords": [
+      "discussion", "community", "opinion", "thoughts", "AMA", "ask",
+      "advice", "newbie", "beginner", "help", "question", "FUD", "debate",
+      "prediction", "bull market", "bear market", "education", "resources"
+    ]
+  },
+  "AI & Blockchain": {
+    "examples": [
+      "How AI can enhance blockchain security.",
+      "Decentralized AI projects on the rise.",
+      "Using AI for predictive analytics in crypto trading.",
+      "Blockchain for AI data integrity and transparency.",
+      "The intersection of AI and Web3 gaming.",
+      "AI-powered smart contracts: automating complex agreements.",
+      "Challenges of integrating AI with decentralized networks.",
+      "Ethical considerations in decentralized AI development.",
+      "AI for optimizing blockchain scalability solutions.",
+      "The future of decentralized machine learning."
+    ],
+    "keywords": [
+      "AI", "Artificial Intelligence", "decentralized AI", "machine learning",
+      "AI crypto", "AI + blockchain", "data integrity", "predictive analytics",
+      "smart contracts", "Web3 AI", "inference networks"
+    ]
+  },
+  "Web3 & Decentralization": {
+    "examples": [
+      "What is Web3 and why does it matter?",
+      "Building decentralized applications (dApps) on Ethereum.",
+      "The promise of self-sovereign identity in Web3.",
+      "How DAOs are democratizing governance.",
+      "The role of interoperability in a multi-chain Web3.",
+      "Moving from Web2 to Web3: challenges and opportunities.",
+      "Exploring decentralized social media platforms (SocialFi).",
+      "User experience (UX) improvements for Web3 adoption.",
+      "The vision of a truly permissionless internet.",
+      "Are zero-knowledge proofs the key to Web3 privacy?"
+    ],
+    "keywords": [
+      "Web3", "dApp", "decentralization", "DAO", "self-sovereign identity",
+      "interoperability", "multi-chain", "SocialFi", "UX", "permissionless",
+      "ZKPs", "privacy", "blockchain scaling", "layer-2", "protocol"
+    ]
+  }
+}
