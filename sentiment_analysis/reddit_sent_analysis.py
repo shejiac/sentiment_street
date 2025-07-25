@@ -102,7 +102,7 @@ conn.commit()
 # ==========================
 # Insert DataFrame entries into the tables
 # ==========================
-Don't keep the sentiment scores list, just the compound score and sentiment label
+# Don't keep the sentiment scores list, just the compound score and sentiment label
 posts_scores_df = posts_scores_df[["posts_id", "title", "body", "score", "cleaned_title", "compound_score_title", "sentiment_label_title", "cleaned_body", "compound_score_body", "sentiment_label_body"]]
 posts_scores_df = posts_scores_df.where(
     pd.notnull(posts_scores_df), None
@@ -111,7 +111,7 @@ posts_scores_buffer = StringIO()
 posts_scores_df.to_csv(posts_scores_buffer, index=False, header=False)
 posts_scores_buffer.seek(0)
 
-Don't keep the sentiment scores list, just the compound score and sentiment label
+# Don't keep the sentiment scores list, just the compound score and sentiment label
 comments_scores_df = comments_scores_df[["comment_id", "body", "score", "cleaned_body", "compound_score_body", "sentiment_label_body"]]
 comments_scores_df = comments_scores_df.where(
     pd.notnull(comments_scores_df), None
