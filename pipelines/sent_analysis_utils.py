@@ -1,8 +1,6 @@
 # General DS libs
 import numpy as np
 import pandas as pd
-import seaborn as sb
-import matplotlib.pyplot as plt
 
 # Data cleaning utils
 from data_cleaning_utils import clean_text, is_junk_comment
@@ -15,11 +13,6 @@ from transformers import (
     BertConfig,
     pipeline,
 )
-from sentence_transformers import SentenceTransformer
-
-# Classification libs
-from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import LabelEncoder
 
 # Type hinting
 from typing import List
@@ -164,5 +157,3 @@ def sentiment_analysis_pipeline(
 
 
 # ==== END OF SENTIMENT ANALYSIS PIPELINE ==== #
-
-# ==== TOPIC MODELING PIPELINE ==== #
