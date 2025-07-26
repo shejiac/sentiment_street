@@ -19,6 +19,7 @@ scikit-learn
 contractions
 emoji
 langdetect
+nltk
 
 # Sentiment analysis
 vaderSentiment
