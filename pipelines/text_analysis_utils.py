@@ -4,10 +4,8 @@ import pandas as pd
 import seaborn as sb
 import matplotlib.pyplot as plt
 
-# Data cleaning libs
-import re
-import contractions
-import emoji
+# Data cleaning utils
+from data_cleaning_utils import clean_text, is_junk_comment
 
 # transformers libs
 import torch
@@ -17,36 +15,16 @@ from transformers import (
     BertConfig,
     pipeline,
 )
+from sentence_transformers import SentenceTransformer
 
-# Additional imports
+# Classification libs
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import LabelEncoder
+
+# Type hinting
 from typing import List
 
-
-# Function to clean text data
-def clean_text(text):
-    """# General data cleaning function for subreddit texts, including post's title, body and comments"""
-    # If text is empty, leave it be
-    if text == "":
-        return ""
-
-    # Replace multiple whitespaces with just one
-    text = re.sub(r"\s+", " ", text)
-
-    # Convert all emojis to textual representation
-    text = emoji.demojize(text)
-
-    # Replace URLs with tag <URL>
-    text = re.sub(
-        r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
-        "<URL>",
-        text,
-    )
-
-    # Expand contractions in the text
-    text = contractions.fix(text)
-
-    return text
-
+# ==== SENTIMENT ANALYSIS PIPELINE ==== #
 
 # Transformers model setup
 model_name = "ProsusAI/finbert"
@@ -107,7 +85,6 @@ def extract_sentiment_label(score, min_neutral_score=-0.33, max_neutral_score=0.
 def sentiment_analysis_pipeline(
     df: pd.DataFrame, id_column: str, text_columns: List[str]
 ):
-    df = df.copy()  # Work on a copy of the DataFrame to avoid modifying the original
     """Run sentiment analysis on a DataFrame containing text data
 
     Args:
@@ -116,6 +93,8 @@ def sentiment_analysis_pipeline(
         text_columns (str): List of columns containing text data.
     Returns:
         pd.DataFrame: DataFrame with sentiment analysis results."""
+
+    df = df.copy()  # Work on a copy of the DataFrame to avoid modifying the original
 
     # Alert if the DataFrame is empty
     if df.empty:
@@ -182,3 +161,8 @@ def sentiment_analysis_pipeline(
 
     # Once for loop is complete, return the DataFrame with sentiment analysis results
     return df
+
+
+# ==== END OF SENTIMENT ANALYSIS PIPELINE ==== #
+
+# ==== TOPIC MODELING PIPELINE ==== #
