@@ -17,9 +17,25 @@ from transformers import (
 # Type hinting
 from typing import List
 
-# ==== SENTIMENT ANALYSIS PIPELINE ==== #
+# Garbage collection to free up memory
+import gc
 
-# Transformers model setup
+# Delete CUDA cache if already loaded to save memory
+# This means the model is never cached
+try:
+    del tokenizer
+except:
+    print("tokenizer already deleted")
+
+try:
+    del model
+except:
+    print("model already deleted")
+
+torch.cuda.empty_cache()
+gc.collect()
+
+# ==== MODEL SETUP ==== #
 model_name = "ProsusAI/finbert"
 label2id = {"negative": 0, "neutral": 1, "positive": 2}
 id2label = {0: "negative", 1: "neutral", 2: "positive"}
@@ -47,7 +63,7 @@ model = BertForSequenceClassification.from_pretrained(
 classifier = pipeline("text-classification", model=model, tokenizer=tokenizer, top_k=3)
 
 
-# Function to calculate compound sentiment score
+# ==== CALCULATE COMPOUND SCORE ==== #
 def calc_compound_score(score_list):
     """Calculate compound score of a piece of text as positive probability - negative probability"""
     # If the score list is NaN, leave it be
@@ -58,7 +74,7 @@ def calc_compound_score(score_list):
     return score_list[0]["score"] - score_list[1]["score"]
 
 
-# Function to extract sentiment label from scores
+# ==== EXTRACT SENTIMENT LABEL FROM SCORE ==== #
 def extract_sentiment_label(score, min_neutral_score=-0.33, max_neutral_score=0.33):
     """Extract sentiment label from the compound score"""
     # If the score is NaN, leave it be
@@ -74,7 +90,7 @@ def extract_sentiment_label(score, min_neutral_score=-0.33, max_neutral_score=0.
         return "neutral"
 
 
-# The full sentiment analysis pipeline function
+# ==== SENTIMENT ANALYSIS PIPELINE ==== #
 def sentiment_analysis_pipeline(
     df: pd.DataFrame, id_column: str, text_columns: List[str]
 ):
