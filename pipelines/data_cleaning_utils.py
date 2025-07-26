@@ -16,7 +16,7 @@ except LookupError:
 
 # ==== FILTER JUNK TEXT ==== #
 # Taken from topic modeling/classifier.py
-def is_junk_comment(text, min_word_count=4):
+def is_junk_comment(text: str, min_word_count: int = 4) -> bool:
     """Check if a comment is junk based on several rules:
     1. Too short (less than min_word_count words)
     2. Only stopwords
@@ -71,7 +71,7 @@ def is_junk_comment(text, min_word_count=4):
 
 
 # ==== CLEAN TEXT FUNCTION ==== #
-def clean_text(text):
+def clean_text(text: str) -> str:
     """General data cleaning function for subreddit texts, including post's title, body and comments
 
     Args:
