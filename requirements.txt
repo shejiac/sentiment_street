@@ -1,0 +1,41 @@
+# This file includes all the libraries that will be installed to run the project
+
+# Jupyter Notebook
+ipykernel
+
+# Scraper & DB
+praw
+psycopg2-binary
+python-dotenv
+
+# General DS libs
+numpy
+pandas
+seaborn
+matplotlib
+scikit-learn
+
+# Text cleaning
+contractions
+emoji
+langdetect
+nltk
+
+# Sentiment analysis
+vaderSentiment
+torch
+transformers
+accelerate
+sentence_transformers
+bitsandbytes
+evaluate
+tokenizers
+datasets
+
+#classifier
+bertopic
+umap-learn
+hdbscan
+
+# Saving and loading models
+joblib
