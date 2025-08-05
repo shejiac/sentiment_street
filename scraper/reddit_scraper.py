@@ -172,131 +172,60 @@ def fetch_coin_metrics(coin_id):
 # ==========================
 # Start Scraping
 # ==========================
-print(f"Scraping started at {datetime.datetime.now()}")
-inserted = 0
+print(f"Reddit scraping started at {datetime.datetime.now()}")
+inserted_posts = 0
+inserted_comments = 0
 
-for coin_name, info in COINS.items():  #NEW LOOP
-    subreddit_name = info["subreddit"]
-    coingecko_id = info["coingecko_id"]
-    subreddit = reddit.subreddit(subreddit_name)
-
-    # --- Fetch and store market data ---
-    metrics = fetch_coin_metrics(coingecko_id)
-    if metrics:
-        cursor.execute("""
-            INSERT INTO coin_metrics (coin_name, price_usd, market_cap_usd, volume_24h_usd)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (coin_name) DO UPDATE SET
-                price_usd = EXCLUDED.price_usd,
-                market_cap_usd = EXCLUDED.market_cap_usd,
-                volume_24h_usd = EXCLUDED.volume_24h_usd,
-                fetched_at = NOW();
-        """, (
-            coin_name, metrics["price_usd"], metrics["market_cap_usd"], metrics["volume_24h_usd"]
-        ))
-        conn.commit()
-        print(f"Stored metrics for {coin_name}")
-
-    try:
-        for post in subreddit.new(limit=LIMIT_POSTS):
-            if int(post.created_utc) < NOW_UTC - SECONDS_IN_A_DAY:
-                continue  # Skip old posts
-
-            post.comments.replace_more(limit=0)
-            top_comments = post.comments.list()[:20]
-
-            # Build comment list in target format
-            comment_json_list = []
-            for c in top_comments:
-                comment_json_list.append({
-                    "comment_id": c.id if c.id else "nan",
-                    "body": c.body if c.body else "nan",
-                    "author": str(c.author) if c.author else "nan",
-                    "score": c.score if c.score else 0,
-                    "created_utc": int(c.created_utc) if c.created_utc else -1
-                })
+try:  # Added this try block to properly wrap the scraping logic
+    if reddit is None or conn is None:
+        print("Cannot proceed with scraping due to previous connection errors.")
+    else:
+        for coin_name, info in COINS.items():
+            subreddit_name = info["subreddit"]
+            coingecko_id = info["coingecko_id"]
             
-            if not comment_json_list:
-                comment_json_list = [{
-                    "comment_id": "nan",
-                    "body": "nan",
-                    "author": "nan",
-                    "score": 0,
-                    "created_utc": -1
-                }]
-            
-            post_data = {
-                "post_id": post.id if post.id else "nan",
-                "subreddit": post.subreddit.display_name if post.subreddit else "nan",
-                "title": post.title if post.title else "nan",
-                "body": post.selftext if post.selftext else "nan",
-                "author": str(post.author) if post.author else "nan",
-                "created_utc": int(post.created_utc) if post.created_utc else -1,
-                "upvotes": post.ups if post.ups else 0,
-                "score": post.score if post.score else 0,
-                "num_comments": post.num_comments if post.num_comments else 0,
-                "flair": [post.link_flair_text] if post.link_flair_text else [],
-                "comments": comment_json_list,
-                "upvote_ratio": post.upvote_ratio if post.upvote_ratio else 0.0,
-                "tickers": [],
-                "coin_name": coin_name  #NEW
-            }
+            print(f"\n--- Processing {coin_name} (Subreddit: r/{subreddit_name}) ---")
 
-
-            # Insert into posts table
-            cursor.execute("""
-                INSERT INTO reddit_posts (
-                    post_id, subreddit, title, body, author,
-                    created_utc, upvotes, score, num_comments,
-                    flair, comments, upvote_ratio, tickers, coin_name
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (post_id) DO NOTHING;
-            """, (
-                post_data["post_id"],
-                post_data["subreddit"],
-                post_data["title"],
-                post_data["body"],
-                post_data["author"],
-                post_data["created_utc"],
-                post_data["upvotes"],
-                post_data["score"],
-                post_data["num_comments"],
-                json.dumps(post_data["flair"]),
-                json.dumps(post_data["comments"]),
-                post_data["upvote_ratio"],
-                json.dumps(post_data["tickers"]),
-                post_data["coin_name"] #NEW
-            ))
-
-            # Insert comments
-            for c in top_comments:
+            # --- Fetch and store market data ---
+            metrics = fetch_coin_metrics(coingecko_id)
+            if metrics:
                 try:
                     cursor.execute("""
-                        INSERT INTO reddit_comments (
-                            comment_id, post_id, author, body, score, created_utc
-                        ) VALUES (%s, %s, %s, %s, %s, %s)
-                        ON CONFLICT (comment_id) DO NOTHING;
+                        INSERT INTO coin_metrics (coin_name, price_usd, market_cap_usd, volume_24h_usd)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (coin_name) DO UPDATE SET
+                            price_usd = EXCLUDED.price_usd,
+                            market_cap_usd = EXCLUDED.market_cap_usd,
+                            volume_24h_usd = EXCLUDED.volume_24h_usd,
+                            fetched_at = NOW();
                     """, (
-                        c.id,
-                        post.id,
-                        str(c.author) if c.author else "nan",
-                        c.body,
-                        c.score, # score (net upvote) = upvote - downvote
-                        int(c.created_utc)
+                        coin_name, metrics["price_usd"], metrics["market_cap_usd"], metrics["volume_24h_usd"]
                     ))
-                except Exception as comment_error:
-                    print(f"Failed to insert comment {c.id}: {comment_error}")
+                    conn.commit()
+                    print(f"Stored latest market metrics for {coin_name}.")
+                except Exception as e:
+                    print(f"Error storing coin metrics for {coin_name}: {e}")
+                    conn.rollback()
 
-            conn.commit()
-            inserted += 1
-            print(f"[{coin_name}] Inserted post: {post.id} — {post.title[:50]}...")
-            time.sleep(1)
+            try:
+                subreddit = reddit.subreddit(subreddit_name)  # Added this line which was missing
+                # We want posts from "today" (last 24 hours from NOW_UTC)
+                current_utc = int(time.time())
+                
+                for post in subreddit.new(limit=LIMIT_POSTS):
+                
+            except ResponseException as reddit_error:
+                print(f"Reddit API error for r/{subreddit_name}: {reddit_error.response.text}")
+            except Exception as general_error:
+                print(f"Error during scraping for r/{subreddit_name}: {general_error}")
 
-    except ResponseException as reddit_error:
-        print("Reddit API error:", reddit_error.response.text)
-    except Exception as general_error:
-        print("Error during scraping:", general_error)
-
-cursor.close()
-conn.close()
-print(f"Done. Inserted {inserted} posts into PostgreSQL.")
+except Exception as main_error:  # Catch any unexpected errors in the main scraping process
+    print(f"An unexpected error occurred in the main scraping process: {main_error}")
+finally:  # Now this is properly part of a try-finally block
+    if cursor:
+        cursor.close()
+    if conn:
+        conn.close()
+    print(f"\nScraping finished at {datetime.datetime.now()}")
+    print(f"Total inserted posts: {inserted_posts}")
+    print(f"Total inserted comments: {inserted_comments}")

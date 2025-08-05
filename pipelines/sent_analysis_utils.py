@@ -73,7 +73,6 @@ def calc_compound_score(score_list):
 
     return score_list[0]["score"] - score_list[1]["score"]
 
-
 # ==== EXTRACT SENTIMENT LABEL FROM SCORE ==== #
 def extract_sentiment_label(score, min_neutral_score=-0.33, max_neutral_score=0.33):
     """Extract sentiment label from the compound score"""
@@ -172,4 +171,28 @@ def sentiment_analysis_pipeline(
     return df
 
 
-# ==== END OF SENTIMENT ANALYSIS PIPELINE ==== #
+# Function to get aggregated daily sentiment for a coin
+def get_daily_coin_sentiment(df: pd.DataFrame, coin_name: str) -> pd.DataFrame:
+    """
+    Aggregates sentiment scores for a specific coin on a daily basis.
+    Assumes df has 'created_utc' and 'compound_score_body' (from comments) and 'coin_name'.
+    """
+    if df.empty:
+        return pd.DataFrame()
+
+    # Convert created_utc to datetime objects and set as index
+    df['date'] = pd.to_datetime(df['created_utc'], unit='s').dt.date
+
+    # Filter for the specific coin
+    coin_df = df[df['coin_name'] == coin_name].copy()
+    if coin_df.empty:
+        print(f"No data for coin: {coin_name}")
+        return pd.DataFrame()
+
+    # Aggregate compound scores per day
+    # We can use mean, median, or sum of compound scores. Mean is a good starting point.
+    daily_sentiment = coin_df.groupby('date')['compound_score_body'].mean().reset_index()
+    daily_sentiment.rename(columns={'compound_score_body': 'daily_avg_sentiment'}, inplace=True)
+    daily_sentiment['coin_name'] = coin_name
+    
+    return daily_sentiment

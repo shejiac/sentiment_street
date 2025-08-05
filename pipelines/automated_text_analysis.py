@@ -4,7 +4,7 @@ import psycopg2
 from dotenv import load_dotenv
 
 import pandas as pd
-from sent_analysis_functions import sentiment_analysis_pipeline
+from sent_analysis_utils import sentiment_analysis_pipeline
 from io import StringIO
 
 load_dotenv()

@@ -36,3 +36,8 @@ datasets
 bertopic
 umap-learn
 hdbscan
+
+#prediction
+xgboost
+catboost
+lightgbm
