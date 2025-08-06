@@ -8,7 +8,7 @@ from transformers import (
 )
 
 MODEL_NAME = "ProsusAI/finbert"
-SAVE_PATH = "models/finbert"
+SAVE_PATH = "models/sent_analysis"
 LABEL2ID = {"negative": 0, "neutral": 1, "positive": 2}
 ID2LABEL = {0: "negative", 1: "neutral", 2: "positive"}
 PADDING_TOKEN = "[PAD]"

@@ -13,8 +13,8 @@ from data_cleaning_utils import is_junk_comment, clean_text
 
 # === Parameters ===
 EXAMPLES_JSON = "topic_modeling/topic_examples.json"
-MODEL_PATH = "models/topic_classifier.pkl"
-LABEL_ENCODER_PATH = "models/topic_label_encoder.pkl"
+MODEL_PATH = "models/topic_modeling/topic_classifier.pkl"
+LABEL_ENCODER_PATH = "models/topic_modeling/topic_label_encoder.pkl"
 
 with open(EXAMPLES_JSON, "r", encoding="utf-8") as f:
     topic_data = json.load(f)
