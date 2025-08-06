@@ -1,4 +1,5 @@
-# Run this script to train a topic classification model using logistic regression.
+# Run this script to set up a topic modeling model.
+# Current method of set up: training a logistic regression model
 # Run this script from the root directory of the project.
 import json
 import pandas as pd
