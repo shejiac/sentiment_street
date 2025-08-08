@@ -1,9 +1,10 @@
+# ==== IMPORTS ==== #
 # General DS libs
 import numpy as np
 import pandas as pd
 
 # Data cleaning utils
-from data_cleaning_utils import clean_text, is_junk_comment
+from data_cleaning_utils import clean_text
 
 # transformers libs
 import torch
@@ -13,6 +14,10 @@ from transformers import (
     BertConfig,
     pipeline,
 )
+from sentence_transformers import SentenceTransformer
+
+# Loading models
+import joblib
 
 # Type hinting
 from typing import List
@@ -35,7 +40,10 @@ except:
 torch.cuda.empty_cache()
 gc.collect()
 
+
+
 # ==== MODEL SETUP ==== #
+# Sentiment analysis model setup
 model_name = "ProsusAI/finbert"
 label2id = {"negative": 0, "neutral": 1, "positive": 2}
 id2label = {0: "negative", 1: "neutral", 2: "positive"}
@@ -60,7 +68,15 @@ model = BertForSequenceClassification.from_pretrained(
     device_map="auto",
 )
 
-classifier = pipeline("text-classification", model=model, tokenizer=tokenizer, top_k=3)
+sentiment_classifier = pipeline(
+    "text-classification", model=model, tokenizer=tokenizer, top_k=3
+)
+
+# Topic modeling model setup
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+topic_classifier = joblib.load("models/topic_modeling/topic_classifier.pkl")
+topic_label_encoder = joblib.load("models/topic_modeling/topic_label_encoder.pkl")
+
 
 
 # ==== CALCULATE COMPOUND SCORE ==== #
@@ -89,18 +105,27 @@ def extract_sentiment_label(score, min_neutral_score=-0.33, max_neutral_score=0.
         return "neutral"
 
 
-# ==== SENTIMENT ANALYSIS PIPELINE ==== #
-def sentiment_analysis_pipeline(
-    df: pd.DataFrame, id_column: str, text_columns: List[str]
+
+# ==== TEXT ANALYSIS PIPELINE ==== #
+def text_analysis_pipeline(
+    df: pd.DataFrame,
+    id_column: str,
+    text_columns: List[str],
+    similarity_threshold: float = 0.5,
+    min_neutral_score: float = -0.33,
+    max_neutral_score: float = 0.33,
 ):
-    """Run sentiment analysis on a DataFrame containing text data
+    """Run sentiment analysis & topic classification on a DataFrame containing text data
 
     Args:
         df (pd.DataFrame): DataFrame containing text data.
         id_column (str): Column containing unique identifiers for each row.
         text_columns (str): List of columns containing text data.
+        similarity_threshold (float): Threshold for topic classification confidence.
+        min_neutral_score (float): Minimum score for neutral sentiment.
+        max_neutral_score (float): Maximum score for neutral sentiment.
     Returns:
-        pd.DataFrame: DataFrame with sentiment analysis results."""
+        pd.DataFrame: DataFrame with text analysis results."""
 
     df = df.copy()  # Work on a copy of the DataFrame to avoid modifying the original
 
@@ -136,19 +161,44 @@ def sentiment_analysis_pipeline(
         ]
 
         # Run sentiment analysis using the FinBERT model
-        sentiments = classifier(
+        sentiments = sentiment_classifier(
             non_na_text_df[cleaned_text_column].tolist(),
             truncation=True,
             max_length=512,
         )
-
-        # Attach sentiment scores back to the DataFrame
         sentiment_scores_column = f"sentiment_scores_{text_column}"
-        non_na_text_df[sentiment_scores_column] = sentiments
+        non_na_text_df[f"sentiment_scores_{text_column}"] = sentiments
 
-        # Merge sentiment scores back to the original DataFrame
+        # Obtain topics from the topic classifier
+        pred_labels = topic_classifier.predict(
+            non_na_text_df[cleaned_text_column].tolist()
+        )
+        topic_column = f"topic_{text_column}"
+        non_na_text_df[topic_column] = topic_label_encoder.inverse_transform(
+            pred_labels
+        )
+        # Obtain similarity scores from the topic classifier
+        similarity_column = f"similarity_{text_column}"
+        pred_probs = topic_classifier.predict_proba(
+            non_na_text_df[cleaned_text_column].tolist()
+        )
+        max_probs = np.max(pred_probs, axis=1)
+        non_na_text_df[similarity_column] = max_probs
+        # Apply threshold, if lower than threshold, set topic as None
+        non_na_text_df[topic_column] = non_na_text_df.apply(
+            lambda x: (
+                x[topic_column]
+                if x[similarity_column] >= similarity_threshold  # Pipeline argument
+                else None
+            ),
+            axis=1,
+        )
+
+        # Merge sentiment scores & predicted topics back to the original DataFrame
         df = df.merge(
-            non_na_text_df[[id_column, cleaned_text_column, sentiment_scores_column]],
+            non_na_text_df[
+                [id_column, cleaned_text_column, sentiment_scores_column, topic_column]
+            ],
             on=[id_column, cleaned_text_column],
             how="left",  # left join to keep all original rows, some may have NaN scores
         )
@@ -163,7 +213,9 @@ def sentiment_analysis_pipeline(
         sentiment_label_column = f"sentiment_label_{text_column}"
         df[sentiment_label_column] = df[compound_score_column].apply(
             lambda x: extract_sentiment_label(
-                x, min_neutral_score=-0.33, max_neutral_score=0.33
+                x,
+                min_neutral_score=min_neutral_score,  # Pipeline arguments
+                max_neutral_score=max_neutral_score,  # Pipeline arguments
             )
         )
 
@@ -171,7 +223,7 @@ def sentiment_analysis_pipeline(
     return df
 
 
-# Function to get aggregated daily sentiment for a coin
+# === AGGREGATE DAILY COIN SENTIMENT === #
 def get_daily_coin_sentiment(df: pd.DataFrame, coin_name: str) -> pd.DataFrame:
     """
     Aggregates sentiment scores for a specific coin on a daily basis.
@@ -181,18 +233,22 @@ def get_daily_coin_sentiment(df: pd.DataFrame, coin_name: str) -> pd.DataFrame:
         return pd.DataFrame()
 
     # Convert created_utc to datetime objects and set as index
-    df['date'] = pd.to_datetime(df['created_utc'], unit='s').dt.date
+    df["date"] = pd.to_datetime(df["created_utc"], unit="s").dt.date
 
     # Filter for the specific coin
-    coin_df = df[df['coin_name'] == coin_name].copy()
+    coin_df = df[df["coin_name"] == coin_name].copy()
     if coin_df.empty:
         print(f"No data for coin: {coin_name}")
         return pd.DataFrame()
 
     # Aggregate compound scores per day
     # We can use mean, median, or sum of compound scores. Mean is a good starting point.
-    daily_sentiment = coin_df.groupby('date')['compound_score_body'].mean().reset_index()
-    daily_sentiment.rename(columns={'compound_score_body': 'daily_avg_sentiment'}, inplace=True)
-    daily_sentiment['coin_name'] = coin_name
-    
+    daily_sentiment = (
+        coin_df.groupby("date")["compound_score_body"].mean().reset_index()
+    )
+    daily_sentiment.rename(
+        columns={"compound_score_body": "daily_avg_sentiment"}, inplace=True
+    )
+    daily_sentiment["coin_name"] = coin_name
+
     return daily_sentiment
