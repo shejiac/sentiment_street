@@ -4,18 +4,19 @@ import psycopg2
 from dotenv import load_dotenv
 
 import pandas as pd
-from sent_analysis_utils import text_analysis_pipeline
+from text_analysis_utils import text_analysis_pipeline
 from io import StringIO
+
+from pipelines.data_cleaning_utils import is_junk_comment
 
 load_dotenv()
 
 # ==========================
 # CONFIGURATION
 # ==========================
-SUBREDDIT_NAME = "Bitcoin"
 SECONDS_IN_A_DAY = 86400
 NOW_UTC = int(time.time())
-LIMIT_POSTS = 100  # <-- You can adjust this safely
+LIMIT_POSTS = 100
 
 # ==========================
 # PostgreSQL Connection
@@ -35,19 +36,25 @@ cursor = conn.cursor()
 # ==========================
 retrieve_from = NOW_UTC - (SECONDS_IN_A_DAY * 1)  # 1 day ago
 posts_df = pd.read_sql(
-    """ SELECT post_id, title, body, score
+    """ SELECT post_id, subreddit, title, body, score
     FROM reddit_posts
     WHERE created_utc >= %s """,
     conn,
     params=(retrieve_from,),
 )
 comments_df = pd.read_sql(
-    """ SELECT comment_id, body, score
+    """ SELECT comment_id, post_id, body, score
     FROM reddit_comments
-    WHERE created_utc >= %s """,
+    WHERE created_utc >= %s """,  # Include post_id to get subreddit name
     conn,
     params=(retrieve_from,),
 )
+
+
+# ==========================
+# Filter out junk comments (posts & titles are assumed to be clean)
+# ==========================
+comments_df = comments_df[~comments_df["body"].apply(is_junk_comment)]
 
 # ==========================
 # Pass DataFrames through sentiment pipeline
@@ -80,7 +87,8 @@ CREATE TABLE IF NOT EXISTS reddit_posts_scores (
     sentiment_label_title TEXT,
     cleaned_body TEXT,
     compound_score_body FLOAT,
-    sentiment_label_body TEXT
+    sentiment_label_body TEXT,
+    topic TEXT
 );
 """
 )
@@ -93,7 +101,8 @@ CREATE TABLE IF NOT EXISTS reddit_comments_scores (
     score INTEGER,
     cleaned_body TEXT,
     compound_score_body FLOAT,
-    sentiment_label_body TEXT
+    sentiment_label_body TEXT,
+    topic TEXT
 );
 """
 )
@@ -115,6 +124,7 @@ posts_scores_df = posts_scores_df[
         "cleaned_body",
         "compound_score_body",
         "sentiment_label_body",
+        "topic",
     ]
 ]
 posts_scores_df = posts_scores_df.where(
@@ -133,6 +143,7 @@ comments_scores_df = comments_scores_df[
         "cleaned_body",
         "compound_score_body",
         "sentiment_label_body",
+        "topic",
     ]
 ]
 comments_scores_df = comments_scores_df.where(
