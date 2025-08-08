@@ -34,3 +34,14 @@ jobs:
           REDDIT_USER_AGENT: ${{ secrets.REDDIT_USER_AGENT }}
         run: |
           python scraper/reddit_scraper.py
+
+      - name: Run automated sentiment analysis and topic modeling
+        env:
+          PG_DB: ${{ secrets.PG_DB }}
+          PG_USER: ${{ secrets.PG_USER }}
+          PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+          PG_HOST: ${{ secrets.PG_HOST }}
+          PG_PORT: ${{ secrets.PG_PORT }}
+        run: |
+          python pipelines/automated_sentiment_analysis.py
+
