@@ -86,10 +86,11 @@ CREATE TABLE IF NOT EXISTS reddit_posts_scores (
     cleaned_title TEXT,
     compound_score_title FLOAT,
     sentiment_label_title TEXT,
+    topic_title TEXT,
     cleaned_body TEXT,
     compound_score_body FLOAT,
     sentiment_label_body TEXT,
-    topic TEXT
+    topic_body TEXT
 );
 """
 )
@@ -104,7 +105,7 @@ CREATE TABLE IF NOT EXISTS reddit_comments_scores (
     cleaned_body TEXT,
     compound_score_body FLOAT,
     sentiment_label_body TEXT,
-    topic TEXT
+    topic_body TEXT
 );
 """
 )
@@ -125,9 +126,10 @@ posts_scores_df = posts_scores_df[
         "compound_score_title",
         "sentiment_label_title",
         "cleaned_body",
+        "topic_title",
         "compound_score_body",
         "sentiment_label_body",
-        "topic",
+        "topic_body",
     ]
 ]
 posts_scores_df = posts_scores_df.where(
@@ -147,7 +149,7 @@ comments_scores_df = comments_scores_df[
         "cleaned_body",
         "compound_score_body",
         "sentiment_label_body",
-        "topic",
+        "topic_body",
     ]
 ]
 comments_scores_df = comments_scores_df.where(
