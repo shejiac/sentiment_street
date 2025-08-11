@@ -79,6 +79,7 @@ cursor.execute(
     """
 CREATE TABLE IF NOT EXISTS reddit_posts_scores (
     post_id TEXT PRIMARY KEY,
+    subreddit TEXT,
     title TEXT,
     body TEXT,
     score INTEGER,
@@ -97,6 +98,7 @@ cursor.execute(
     """
 CREATE TABLE IF NOT EXISTS reddit_comments_scores (
     comment_id TEXT PRIMARY KEY,
+    post_id TEXT,
     body TEXT,
     score INTEGER,
     cleaned_body TEXT,
@@ -115,6 +117,7 @@ conn.commit()
 posts_scores_df = posts_scores_df[
     [
         "posts_id",
+        "subreddit",
         "title",
         "body",
         "score",
@@ -138,6 +141,7 @@ posts_scores_buffer.seek(0)
 comments_scores_df = comments_scores_df[
     [
         "comment_id",
+        "post_id",
         "body",
         "score",
         "cleaned_body",
