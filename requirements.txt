@@ -39,3 +39,7 @@ hdbscan
 
 # Saving and loading models
 joblib
+
+# Streamlit UI
+streamlit
+altair
