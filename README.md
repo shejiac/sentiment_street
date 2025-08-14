@@ -59,22 +59,22 @@ Scrape → Store in DB → Export for analysis → Sentiment/Topic Models → St
 - CoinGecko API key (optional, for demo frontend)
 
 ### 1. Create a virtual environment (example using Conda)
-\`\`\`bash
+```bash
 conda create -n sentimentstreet python=3.12
 conda activate sentimentstreet
-\`\`\`
+```
 
 ### 2. Clone the repository and install dependencies
-\`\`\`bash
+```bash
 git clone <repository_url>
 cd <project_folder>
 pip install -r requirements.txt
-\`\`\`
+```
 
 ### 3. Configure environment variables  
-Create a \`.env\` file in the root directory:
+Create a `.env` file in the root directory:
 
-\`\`\`env
+```env
 # Reddit API credentials
 REDDIT_CLIENT_ID=your_client_id
 REDDIT_CLIENT_SECRET=your_client_secret
@@ -86,7 +86,7 @@ POSTGRES_PASSWORD=your_password
 POSTGRES_DB=your_dbname
 POSTGRES_HOST=your_host
 POSTGRES_PORT=5432
-\`\`\`
+```
 
 ---
 
@@ -95,32 +95,32 @@ POSTGRES_PORT=5432
 Run each component as needed:
 
 ### Daily Scraper
-\`\`\`bash
+```bash
 python scraper/reddit_scraper.py
-\`\`\`
+```
 
 ### Automated Text Analysis (Sentiment + Topic Modeling)
-\`\`\`bash
+```bash
 python pipelines/automated_text_analysis.py
-\`\`\`
+```
 
 ### Train Price Prediction Models
-\`\`\`bash
+```bash
 python price_prediction/train_model.py
-\`\`\`
+```
 
 ### Launch the UI
-\`\`\`bash
+```bash
 streamlit run streamlit_frontend.py
-\`\`\`
+```
 
 ---
 
 ## ⏱ Automated Scheduling
 
-A daily cron job is` set up to:
-- Run \`reddit_scraper.py\` to collect new data.
-- Run \`automated_text_analysis.py\` to process sentiment & topics.
+A daily cron job is set up to:
+- Run `reddit_scraper.py` to collect new data.
+- Run `automated_text_analysis.py` to process sentiment & topics.
 
 **Automated Workflow:**
 1. Scrape relevant Reddit posts & comments.
